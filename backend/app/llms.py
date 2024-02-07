@@ -2,7 +2,7 @@ import os
 from functools import lru_cache
 
 import boto3
-from langchain_community.chat_models import BedrockChat, ChatAnthropic, ChatFireworks
+from langchain_community.chat_models import BedrockChat, ChatAnthropic, ChatFireworks, ChatOllama
 from langchain_google_vertexai import ChatVertexAI
 from langchain_openai import AzureChatOpenAI, ChatOpenAI
 
@@ -51,3 +51,7 @@ def get_google_llm():
 @lru_cache(maxsize=1)
 def get_mixtral_fireworks():
     return ChatFireworks(model="accounts/fireworks/models/mixtral-8x7b-instruct")
+
+@lru_cache(maxsize=1)
+def get_ollama_llm():
+    return ChatOllama(temperature=0, model="mistral", streaming=True, base_url=os.environ.get("OLLAMA_URL"))

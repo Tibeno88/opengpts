@@ -12,6 +12,7 @@ from langgraph.checkpoint import CheckpointAt
 from app.agent_types.google_agent import get_google_agent_executor
 from app.agent_types.openai_agent import get_openai_agent_executor
 from app.agent_types.xml_agent import get_xml_agent_executor
+from app.agent_types.ollama_agent import get_ollama_agent_executor
 from app.chatbot import get_chatbot_executor
 from app.checkpoint import RedisCheckpoint
 from app.llms import (
@@ -19,6 +20,7 @@ from app.llms import (
     get_google_llm,
     get_mixtral_fireworks,
     get_openai_llm,
+    get_ollama_llm,
 )
 from app.retrieval import get_retrieval_executor
 from app.tools import (
@@ -38,6 +40,7 @@ class AgentType(str, Enum):
     CLAUDE2 = "Claude 2"
     BEDROCK_CLAUDE2 = "Claude 2 (Amazon Bedrock)"
     GEMINI = "GEMINI"
+    OLLAMA = "OLLAMA (Mistral)"
 
 
 DEFAULT_SYSTEM_MESSAGE = "You are a helpful assistant."
@@ -79,6 +82,11 @@ def get_agent_executor(
     elif agent == AgentType.GEMINI:
         llm = get_google_llm()
         return get_google_agent_executor(
+            tools, llm, system_message, interrupt_before_action, CHECKPOINTER
+        )
+    elif agent == AgentType.OLLAMA:
+        llm = get_ollama_llm()
+        return get_ollama_agent_executor(
             tools, llm, system_message, interrupt_before_action, CHECKPOINTER
         )
     else:
@@ -145,6 +153,7 @@ class LLMType(str, Enum):
     BEDROCK_CLAUDE2 = "Claude 2 (Amazon Bedrock)"
     GEMINI = "GEMINI"
     MIXTRAL = "Mixtral"
+    OLLAMA = "OLLAMA (Mistral)"
 
 
 def get_chatbot(
@@ -165,6 +174,8 @@ def get_chatbot(
         llm = get_google_llm()
     elif llm_type == LLMType.MIXTRAL:
         llm = get_mixtral_fireworks()
+    elif llm_type == LLMType.OLLAMA:
+        llm = get_ollama_llm()
     else:
         raise ValueError("Unexpected llm type")
     return get_chatbot_executor(llm, system_message, CHECKPOINTER)
@@ -197,7 +208,7 @@ class ConfigurableChatBot(RunnableBinding):
 
 
 chatbot = (
-    ConfigurableChatBot(llm=LLMType.GPT_35_TURBO, checkpoint=CHECKPOINTER)
+    ConfigurableChatBot(llm=LLMType.OLLAMA, checkpoint=CHECKPOINTER)
     .configurable_fields(
         llm=ConfigurableField(id="llm_type", name="LLM Type"),
         system_message=ConfigurableField(id="system_message", name="Instructions"),
@@ -238,6 +249,8 @@ class ConfigurableRetrieval(RunnableBinding):
             llm = get_google_llm()
         elif llm_type == LLMType.MIXTRAL:
             llm = get_mixtral_fireworks()
+        elif llm_type == LLMType.OLLAMA:
+            llm = get_ollama_llm()
         else:
             raise ValueError("Unexpected llm type")
         chatbot = get_retrieval_executor(llm, retriever, system_message, CHECKPOINTER)
@@ -251,7 +264,7 @@ class ConfigurableRetrieval(RunnableBinding):
 
 
 chat_retrieval = (
-    ConfigurableRetrieval(llm_type=LLMType.GPT_35_TURBO, checkpoint=CHECKPOINTER)
+    ConfigurableRetrieval(llm_type=LLMType.OLLAMA, checkpoint=CHECKPOINTER)
     .configurable_fields(
         llm_type=ConfigurableField(id="llm_type", name="LLM Type"),
         system_message=ConfigurableField(id="system_message", name="Instructions"),
